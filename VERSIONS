@@ -1,0 +1,3 @@
+enet-1.3.13
+LibJIT: latest git HEAD (yes, just clone the repo)
+mingw-gcc 7.1.0
