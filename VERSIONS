@@ -8,3 +8,6 @@ For android:
 enet-1.3.13
 SDL2-2.0.7
 SDL2_mixer-2.0.4
+
+For dos:
+allegro 4.2.3.1 (patched)

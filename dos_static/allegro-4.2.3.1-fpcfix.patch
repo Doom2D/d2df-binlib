@@ -1,0 +1,37 @@
+--- src/dos/dsystem.c	2005-03-12 08:29:06.000000000 +0200
++++ src/dos/dsystem.c	2019-01-01 02:17:03.398350788 +0300
+@@ -331,9 +331,11 @@
+    old_sig_term = signal(SIGTERM, signal_handler);
+    old_sig_int  = signal(SIGINT,  signal_handler);
+ 
++/*
+    #ifdef SIGKILL
+       old_sig_kill = signal(SIGKILL, signal_handler);
+    #endif
++*/
+ 
+    #ifdef SIGQUIT
+       old_sig_quit = signal(SIGQUIT, signal_handler);
+@@ -362,9 +364,11 @@
+    signal(SIGTERM, old_sig_term);
+    signal(SIGINT,  old_sig_int);
+ 
++/*
+    #ifdef SIGKILL
+       signal(SIGKILL, old_sig_kill);
+    #endif
++*/
+ 
+    #ifdef SIGQUIT
+       signal(SIGQUIT, old_sig_quit);
+--- src/misc/vbeafex.c	2005-12-13 14:13:31.000000000 +0200
++++ src/misc/vbeafex.c	2019-02-08 19:47:48.335500806 +0300
+@@ -343,7 +343,7 @@
+ 
+ 
+ /* for the save_ds() / load_ds() functions */
+-static unsigned short saved_ds = 0;
++unsigned short saved_ds = 0;
+ 
+ 
+ 
