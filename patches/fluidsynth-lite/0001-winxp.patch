@@ -1,3 +1,46 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9dca996..3a2f839 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -59,6 +59,7 @@ option ( enable-trap-on-fpe "enable SIGFPE trap on Floating Point Exceptions" of
+ option ( enable-fpe-check "enable Floating Point Exception checks and debug messages" off )
+ option ( enable-debug "enable debugging (default=no)" off )
+ option ( BUILD_SHARED_LIBS "Build a shared object or DLL" off )
++option ( WINXP_SUPPORT "Support Windows XP" off )
+ 
+ # Initialize the library directory name suffix.
+ if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+@@ -140,8 +141,15 @@ if ( WIN32 )
+   if ( MINGW )
+     set ( MINGW32 1 )
+     add_definitions ( -mms-bitfields )
+-    add_definitions ( -D_WIN32_WINNT=0x600 )
++    if ( WINXP_SUPPORT )
++      add_definitions ( -D_WIN32_WINNT=0x502 )
++    else ( WINXP_SUPPORT )
++      add_definitions ( -D_WIN32_WINNT=0x600 )
++    endif ( WINXP_SUPPORT )
+   endif  ( MINGW )
++  if ( WINXP_SUPPORT )
++    add_definitions( -DWINXP=1 )
++  endif ( WINXP_SUPPORT )
+ else ( WIN32 )
+ # Check PThreads, but not in Windows
+   set ( HAVE_LIBPTHREAD on )
+diff --git a/src/rvoice/fluid_rvoice_mixer.c b/src/rvoice/fluid_rvoice_mixer.c
+index c121409..5877c40 100644
+--- a/src/rvoice/fluid_rvoice_mixer.c
++++ b/src/rvoice/fluid_rvoice_mixer.c
+@@ -28,7 +28,9 @@
+ #define SYNTH_REVERB_CHANNEL 0
+ #define SYNTH_CHORUS_CHANNEL 1
+ 
++#ifndef WINXP // completely turn off on XP
+ #define ENABLE_MIXER_THREADS 1
++#endif
+ 
+ // If less than x voices, the thread overhead is larger than the gain,
+ // so don't activate the thread(s).
 diff --git a/src/sfloader/fluid_defsfont.c b/src/sfloader/fluid_defsfont.c
 index e9daa89..6199cb9 100644
 --- a/src/sfloader/fluid_defsfont.c
@@ -52,7 +95,7 @@ index e272eee..b16745d 100644
  #define fluid_atomic_int_set(atomic, val) InterlockedExchange((atomic), (val))
  #define fluid_atomic_int_exchange_and_add(atomic, add)  \
 diff --git a/src/utils/fluid_sys.h b/src/utils/fluid_sys.h
-index af45329..c2e053f 100644
+index af45329..e8b3e61 100644
 --- a/src/utils/fluid_sys.h
 +++ b/src/utils/fluid_sys.h
 @@ -230,18 +230,18 @@ fluid_win32_mutex_init(PHANDLE m)
@@ -84,3 +127,23 @@ index af45329..c2e053f 100644
  
  /* Dynamically allocated mutex suitable for fluid_cond_t use */
  typedef CRITICAL_SECTION fluid_cond_mutex_t;
+@@ -268,11 +268,19 @@ delete_fluid_cond_mutex (fluid_cond_mutex_t *m)
+ 
+ /* Thread condition signaling */
+ typedef CONDITION_VARIABLE fluid_cond_t;
++#ifndef WINXP
+ #define fluid_cond_init(cond)           InitializeConditionVariable(cond)
+ #define fluid_cond_destroy(cond)
+ #define fluid_cond_signal(cond)         WakeConditionVariable(cond)
+ #define fluid_cond_broadcast(cond)      WakeAllConditionVariable(cond)
+ #define fluid_cond_wait(cond, mutex)    SleepConditionVariableCS(cond, mutex, INFINITE)
++#else
++#define fluid_cond_init(cond)           (void)(cond)
++#define fluid_cond_destroy(cond)
++#define fluid_cond_signal(cond)         (void)(cond)
++#define fluid_cond_broadcast(cond)      (void)(cond)
++#define fluid_cond_wait(cond, mutex)    (void)(cond)
++#endif
+ 
+ static FLUID_INLINE fluid_cond_t *
+ new_fluid_cond (void)
