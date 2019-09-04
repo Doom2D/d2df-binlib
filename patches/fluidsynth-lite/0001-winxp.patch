@@ -1,0 +1,86 @@
+diff --git a/src/sfloader/fluid_defsfont.c b/src/sfloader/fluid_defsfont.c
+index e9daa89..6199cb9 100644
+--- a/src/sfloader/fluid_defsfont.c
++++ b/src/sfloader/fluid_defsfont.c
+@@ -245,6 +245,9 @@ static fluid_cached_sampledata_t *all_cached_sampledata = NULL;
+ static fluid_mutex_t cached_sampledata_mutex = FLUID_MUTEX_INIT;
+ #else
+ static fluid_mutex_t cached_sampledata_mutex;
++# if defined(WIN32)
++static int cached_sampledata_mutex_init = 0;
++# endif
+ #endif
+ 
+ static int fluid_get_file_modification_time(char *filename,
+@@ -274,6 +277,12 @@ static int fluid_cached_sampledata_load(char *filename, unsigned int samplepos,
+     fluid_cached_sampledata_t *cached_sampledata = NULL;
+     time_t modification_time;
+ 
++#if defined(WIN32)
++    if (!cached_sampledata_mutex_init) {
++      cached_sampledata_mutex_init = 1;
++      fluid_mutex_init(cached_sampledata_mutex);
++    }
++#endif
+     fluid_mutex_lock(cached_sampledata_mutex);
+ 
+     if (fluid_get_file_modification_time(filename, &modification_time) ==
+@@ -411,6 +420,12 @@ static int fluid_cached_sampledata_unload(const short *sampledata)
+     fluid_cached_sampledata_t *prev = NULL;
+     fluid_cached_sampledata_t *cached_sampledata;
+ 
++#if defined(WIN32)
++    if (!cached_sampledata_mutex_init) {
++      cached_sampledata_mutex_init = 1;
++      fluid_mutex_init(cached_sampledata_mutex);
++    }
++#endif
+     fluid_mutex_lock(cached_sampledata_mutex);
+     cached_sampledata = all_cached_sampledata;
+ 
+diff --git a/src/utils/fluid_atomic.h b/src/utils/fluid_atomic.h
+index e272eee..b16745d 100644
+--- a/src/utils/fluid_atomic.h
++++ b/src/utils/fluid_atomic.h
+@@ -73,7 +73,7 @@ typedef volatile ULONG atomic_uint;
+ typedef volatile LONG atomic_float;
+ 
+ #define fluid_atomic_int_inc(atomic) InterlockedIncrement((atomic))
+-#define fluid_atomic_int_add(atomic, val) InterlockedAdd((atomic), (val))
++#define fluid_atomic_int_add(atomic, val) (InterlockedExchangeAdd((atomic), (val)) + (val))
+ #define fluid_atomic_int_get(atomic) (*(LONG*)(atomic))
+ #define fluid_atomic_int_set(atomic, val) InterlockedExchange((atomic), (val))
+ #define fluid_atomic_int_exchange_and_add(atomic, add)  \
+diff --git a/src/utils/fluid_sys.h b/src/utils/fluid_sys.h
+index af45329..c2e053f 100644
+--- a/src/utils/fluid_sys.h
++++ b/src/utils/fluid_sys.h
+@@ -230,18 +230,18 @@ fluid_win32_mutex_init(PHANDLE m)
+ }
+ 
+ /* Regular mutex */
+-typedef SRWLOCK fluid_mutex_t;
+-#define fluid_mutex_init(_m)      InitializeSRWLock(&(_m))
+-#define fluid_mutex_destroy(_m)
+-#define fluid_mutex_lock(_m)      AcquireSRWLockExclusive(&(_m))
+-#define fluid_mutex_unlock(_m)    ReleaseSRWLockExclusive(&(_m))
++typedef CRITICAL_SECTION fluid_mutex_t;
++#define fluid_mutex_init(_m)      InitializeCriticalSection(&(_m))
++#define fluid_mutex_destroy(_m)   DeleteCriticalSection(&(_m))
++#define fluid_mutex_lock(_m)      EnterCriticalSection(&(_m))
++#define fluid_mutex_unlock(_m)    LeaveCriticalSection(&(_m))
+ 
+ /* Recursive lock capable mutex */
+-typedef SRWLOCK fluid_rec_mutex_t;
+-#define fluid_rec_mutex_init(_m)      InitializeSRWLock(&(_m))
+-#define fluid_rec_mutex_destroy(_m)
+-#define fluid_rec_mutex_lock(_m)      AcquireSRWLockShared(&(_m))
+-#define fluid_rec_mutex_unlock(_m)    ReleaseSRWLockShared(&(_m))
++typedef HANDLE fluid_rec_mutex_t;
++#define fluid_rec_mutex_init(_m)      fluid_win32_mutex_init(&(_m))
++#define fluid_rec_mutex_destroy(_m)   CloseHandle(_m)
++#define fluid_rec_mutex_lock(_m)      WaitForSingleObject(_m, INFINITE)
++#define fluid_rec_mutex_unlock(_m)    ReleaseMutex(_m)
+ 
+ /* Dynamically allocated mutex suitable for fluid_cond_t use */
+ typedef CRITICAL_SECTION fluid_cond_mutex_t;
