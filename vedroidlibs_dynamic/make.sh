@@ -42,10 +42,10 @@ if ! command -v ndk-build 2>&1 >/dev/null; then
   exit 1
 fi
 
-cp AndroidEnet.mk enet/Android.mk
-cp AndroidUPNP.mk miniupnpc/Android.mk
-mkdir -p miniupnpc/android
-cat <<'END' > miniupnpc/android/miniupnpcstrings.h
+cp "$base/AndroidEnet.mk" "$base/enet/Android.mk"
+cp "$base/AndroidUPNP.mk" "$base/miniupnpc/Android.mk"
+mkdir -p "$base/miniupnpc/android"
+cat <<'END' > "$base/miniupnpc/android/miniupnpcstrings.h"
 #ifndef MINIUPNPCSTRINGS_H_INCLUDED
 #define MINIUPNPCSTRINGS_H_INCLUDED
 #define OS_STRING "Android"
@@ -57,14 +57,12 @@ END
 # APP_ABI="armeabi armeabi-v7a arm64-v8a mips mips64 x86 x86_64" \
 
 # -DHAVE_STDINT_H fixes modplug
-ndk-build -j12 clean all \
-  APP_BUILD_SCRIPT=Android.mk \
-  NDK_PROJECT_PATH=. \
+ndk-build -j $(nproc) clean all \
+  APP_BUILD_SCRIPT="$base/Android.mk" \
+  NDK_PROJECT_PATH="$base" \
   APP_CFLAGS=-DHAVE_STDINT_H \
   APP_STL=gnustl_static \
   APP_ABI="armeabi armeabi-v7a arm64-v8a mips x86 x86_64" \
   APP_PLATFORM=android-14 \
-  NDK_TOOLCHAIN_VERSION=5 "$@"
-
-rm -f enet/Android.mk miniupnpc/Android.mk miniupnpc/android/miniupnpcstrings.h 
-rm -rf miniupnpc/android
+  NDK_TOOLCHAIN_VERSION=5 \
+  "$@"
