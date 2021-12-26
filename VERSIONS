@@ -5,9 +5,12 @@ mingw-gcc 7.1.0
 miniupnpc: latest git HEAD
 
 For android:
-enet-1.3.13
-SDL2-2.0.7
-SDL2_mixer-2.0.4
+libcrystax.so: 10.3.2
+libenet.so: 1.3.17
+libSDL2.so: 2.0.7
+libSDL2_mixer.so: 2.0.4
+libmpg123.so: version from SDL2_mixer
+libminiupnpc.so: 2.2.3
 
 For dos:
 allegro 4.2.3.1 (patched)
